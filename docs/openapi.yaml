@@ -1,1 +1,418 @@
-# Здесь будет OpenAPI описание всех доступных эндпоинтов и моделей данных.
+openapi: 3.0.3
+info:
+  title: Bank Cards Management API
+  description: API для управления банковскими картами
+  version: 1.0.0
+  contact:
+    name: Bank Development Team
+    email: dev@bank.com
+
+servers:
+  - url: http://localhost:8080
+    description: Development server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  
+  schemas:
+    UserDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [USER, ADMIN]
+        enabled:
+          type: boolean
+    
+    CreateUserRequest:
+      type: object
+      required:
+        - username
+        - password
+        - email
+        - role
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+        password:
+          type: string
+          minLength: 6
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [USER, ADMIN]
+    
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+    
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        username:
+          type: string
+        role:
+          type: string
+          enum: [USER, ADMIN]
+    
+    BankCardDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        maskedNumber:
+          type: string
+        cardholderName:
+          type: string
+        expiryDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [ACTIVE, BLOCKED, EXPIRED]
+        balance:
+          type: number
+          format: decimal
+        createdAt:
+          type: string
+          format: date-time
+    
+    CreateCardRequest:
+      type: object
+      required:
+        - cardholderName
+        - ownerId
+      properties:
+        cardholderName:
+          type: string
+        ownerId:
+          type: integer
+          format: int64
+    
+    UpdateCardStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [ACTIVE, BLOCKED, EXPIRED]
+    
+    TransactionDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        fromCardMasked:
+          type: string
+        toCardMasked:
+          type: string
+        amount:
+          type: number
+          format: decimal
+        status:
+          type: string
+          enum: [PENDING, COMPLETED, FAILED, CANCELLED]
+        createdAt:
+          type: string
+          format: date-time
+        description:
+          type: string
+    
+    CreateTransactionRequest:
+      type: object
+      required:
+        - fromCardId
+        - toCardId
+        - amount
+      properties:
+        fromCardId:
+          type: integer
+          format: int64
+        toCardId:
+          type: integer
+          format: int64
+        amount:
+          type: number
+          format: decimal
+          minimum: 0.01
+        description:
+          type: string
+
+paths:
+  /api/auth/register:
+    post:
+      summary: Регистрация нового пользователя
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '200':
+          description: Пользователь успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDto'
+        '400':
+          description: Неверные данные запроса
+  
+  /api/auth/login:
+    post:
+      summary: Вход в систему
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Успешный вход
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Неверные учетные данные
+  
+  /api/cards:
+    get:
+      summary: Получение списка карт пользователя
+      tags: [Bank Cards]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [ACTIVE, BLOCKED, EXPIRED]
+        - name: searchTerm
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список карт
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BankCardDto'
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+                  size:
+                    type: integer
+                  number:
+                    type: integer
+    
+    post:
+      summary: Создание новой карты
+      tags: [Bank Cards]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCardRequest'
+      responses:
+        '200':
+          description: Карта успешно создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BankCardDto'
+        '400':
+          description: Неверные данные запроса
+  
+  /api/cards/{id}:
+    get:
+      summary: Получение карты по ID
+      tags: [Bank Cards]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Карта найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BankCardDto'
+        '404':
+          description: Карта не найдена
+    
+    put:
+      summary: Обновление статуса карты
+      tags: [Bank Cards]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCardStatusRequest'
+      responses:
+        '200':
+          description: Статус карты обновлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BankCardDto'
+        '403':
+          description: Доступ запрещен
+        '404':
+          description: Карта не найдена
+    
+    delete:
+      summary: Удаление карты
+      tags: [Bank Cards]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Карта успешно удалена
+        '403':
+          description: Доступ запрещен
+        '404':
+          description: Карта не найдена
+  
+  /api/transactions/transfer:
+    post:
+      summary: Перевод между картами
+      tags: [Transactions]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransactionRequest'
+      responses:
+        '200':
+          description: Перевод выполнен успешно
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionDto'
+        '400':
+          description: Неверные данные запроса
+        '403':
+          description: Доступ запрещен
+  
+  /api/transactions/history:
+    get:
+      summary: История транзакций пользователя
+      tags: [Transactions]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: История транзакций
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TransactionDto'
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+                  size:
+                    type: integer
+                  number:
+                    type: integer
+
+tags:
+  - name: Authentication
+    description: Операции аутентификации
+  - name: Bank Cards
+    description: Управление банковскими картами
+  - name: Transactions
+    description: Операции с транзакциями

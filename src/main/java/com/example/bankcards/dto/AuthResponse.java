@@ -1,10 +1,10 @@
 package com.example.bankcards.dto;
 
+import com.example.bankcards.entity.Role;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import com.example.bankcards.entity.Role;
 
 @Data
 @NoArgsConstructor
