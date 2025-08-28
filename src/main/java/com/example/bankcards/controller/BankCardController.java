@@ -25,15 +25,13 @@ public class BankCardController {
     @PostMapping
     public ResponseEntity<BankCardDto> createCard(@Valid @RequestBody CreateCardRequest request) {
         // В реальном проекте здесь должна быть проверка роли пользователя
-        BankCardDto card = bankCardService.createCard(request);
-        return ResponseEntity.ok(card);
+        return ResponseEntity.ok(bankCardService.createCard(request));
     }
     
     @GetMapping("/{id}")
     public ResponseEntity<BankCardDto> getCard(@PathVariable Long id) {
         // В реальном проекте здесь должна быть проверка аутентификации
-        BankCardDto card = bankCardService.getCardById(id, 1L, Role.USER);
-        return ResponseEntity.ok(card);
+        return ResponseEntity.ok(bankCardService.getCardById(id, 1L, Role.USER));
     }
     
     @GetMapping
@@ -47,9 +45,8 @@ public class BankCardController {
         Long userId = 1L; // Заглушка
         
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<BankCardDto> cards = bankCardService.getUserCards(userId, status, searchTerm, pageable);
         
-        return ResponseEntity.ok(cards);
+        return ResponseEntity.ok(bankCardService.getUserCards(userId, status, searchTerm, pageable));
     }
     
     @PutMapping("/{id}/status")
@@ -58,8 +55,7 @@ public class BankCardController {
             @Valid @RequestBody UpdateCardStatusRequest request) {
         
         // В реальном проекте здесь должна быть проверка роли ADMIN
-        BankCardDto card = bankCardService.updateCardStatus(id, request, 1L, Role.ADMIN);
-        return ResponseEntity.ok(card);
+        return ResponseEntity.ok(bankCardService.updateCardStatus(id, request, 1L, Role.ADMIN));
     }
     
     @DeleteMapping("/{id}")

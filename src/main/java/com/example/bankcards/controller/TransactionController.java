@@ -24,8 +24,7 @@ public class TransactionController {
         // В реальном проекте здесь должна быть проверка аутентификации
         Long userId = 1L; // Заглушка
         
-        TransactionDto transaction = transactionService.createTransaction(request, userId);
-        return ResponseEntity.ok(transaction);
+        return ResponseEntity.ok(transactionService.createTransaction(request, userId));
     }
     
     @GetMapping("/history")
@@ -37,8 +36,7 @@ public class TransactionController {
         Long userId = 1L; // Заглушка
         
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<TransactionDto> transactions = transactionService.getUserTransactions(userId, pageable);
         
-        return ResponseEntity.ok(transactions);
+        return ResponseEntity.ok(transactionService.getUserTransactions(userId, pageable));
     }
 }
