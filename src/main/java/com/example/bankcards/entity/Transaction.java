@@ -1,23 +1,12 @@
 package com.example.bankcards.entity;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "transactions")
@@ -42,12 +31,17 @@ public class Transaction {
     private BigDecimal amount;
     
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private TransactionStatus status;
     
-    @Column(nullable = false)
+    @Column(length = 500)
+    private String description;
+    
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
     
-    @Column
-    private String description;
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+    }
 }

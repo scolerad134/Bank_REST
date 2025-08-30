@@ -20,33 +20,33 @@ public class BankCard {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(nullable = false, unique = true)
+    @Column(name = "card_number", nullable = false, unique = true, length = 255)
     private String cardNumber; // зашифрованный номер
     
-    @Column(nullable = false)
+    @Column(name = "masked_number", nullable = false, length = 20)
     private String maskedNumber; // маскированный для отображения
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
     
-    @Column(nullable = false)
+    @Column(name = "cardholder_name", nullable = false, length = 100)
     private String cardholderName;
     
-    @Column(nullable = false)
+    @Column(name = "expiry_date", nullable = false)
     private LocalDate expiryDate;
     
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private CardStatus status;
     
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal balance;
     
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
     
-    @Column(nullable = false)
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
     
     @PrePersist

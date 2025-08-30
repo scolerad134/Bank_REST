@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Random;
 
 @Service
@@ -45,7 +46,7 @@ public class BankCardService {
             .cardholderName(request.getCardholderName())
             .expiryDate(LocalDate.now().plusYears(4)) // карта на 4 года
             .status(CardStatus.ACTIVE)
-            .balance(BigDecimal.ZERO)
+            .balance(request.getInitialBalance())
             .build();
         
         BankCard savedCard = bankCardRepository.save(card);
@@ -54,15 +55,9 @@ public class BankCardService {
         return mapToDto(savedCard);
     }
     
-    public BankCardDto getCardById(Long id, Long userId, Role userRole) {
+    public BankCardDto getCardById(Long id) {
         BankCard card = bankCardRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Card not found with id: " + id));
-        
-        // Проверяем права доступа
-        if (userRole != Role.ADMIN && !card.getOwner().getId().equals(userId)) {
-            throw new RuntimeException("Access denied to card: " + id);
-        }
-        
         return mapToDto(card);
     }
     
@@ -74,15 +69,19 @@ public class BankCardService {
         return cards.map(this::mapToDto);
     }
     
-    public BankCardDto updateCardStatus(Long id, UpdateCardStatusRequest request, 
-                                      Long userId, Role userRole) {
+    public Page<BankCardDto> getAllCards(Pageable pageable) {
+        Page<BankCard> cards = bankCardRepository.findAll(pageable);
+        return cards.map(this::mapToDto);
+    }
+    
+    public Page<BankCardDto> getCardsByStatus(CardStatus status, Pageable pageable) {
+        Page<BankCard> cards = bankCardRepository.findByStatus(status, pageable);
+        return cards.map(this::mapToDto);
+    }
+    
+    public BankCardDto updateCardStatus(Long id, UpdateCardStatusRequest request) {
         BankCard card = bankCardRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Card not found with id: " + id));
-        
-        // Только админ может менять статус карт
-        if (userRole != Role.ADMIN) {
-            throw new RuntimeException("Only admin can update card status");
-        }
         
         card.setStatus(request.getStatus());
         BankCard savedCard = bankCardRepository.save(card);
@@ -91,17 +90,20 @@ public class BankCardService {
         return mapToDto(savedCard);
     }
     
-    public void deleteCard(Long id, Long userId, Role userRole) {
-        BankCard card = bankCardRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Card not found with id: " + id));
-        
-        // Только админ может удалять карты
-        if (userRole != Role.ADMIN) {
-            throw new RuntimeException("Only admin can delete cards");
+    public void deleteCard(Long id) {
+        if (!bankCardRepository.existsById(id)) {
+            throw new RuntimeException("Card not found with id: " + id);
         }
-        
         bankCardRepository.deleteById(id);
         log.info("Deleted card: {}", id);
+    }
+    
+    public List<BankCard> getExpiredCards() {
+        return bankCardRepository.findExpiredCards(LocalDate.now());
+    }
+    
+    public List<BankCard> getLowBalanceCards(BigDecimal minBalance) {
+        return bankCardRepository.findByBalanceLessThan(minBalance);
     }
     
     private String generateCardNumber() {
@@ -119,7 +121,7 @@ public class BankCardService {
         return "**** **** **** " + cardNumber.substring(12);
     }
     
-    private BankCardDto mapToDto(BankCard card) {
+    public BankCardDto mapToDto(BankCard card) {
         return BankCardDto.builder()
             .id(card.getId())
             .maskedNumber(card.getMaskedNumber())
@@ -128,6 +130,9 @@ public class BankCardService {
             .status(card.getStatus())
             .balance(card.getBalance())
             .createdAt(card.getCreatedAt())
+            .updatedAt(card.getUpdatedAt())
+            .ownerId(card.getOwner().getId())
+            .ownerUsername(card.getOwner().getUsername())
             .build();
     }
 }

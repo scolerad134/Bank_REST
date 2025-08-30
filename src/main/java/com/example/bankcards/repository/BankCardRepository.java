@@ -30,4 +30,10 @@ public interface BankCardRepository extends JpaRepository<BankCard, Long> {
     
     @Query("SELECT c FROM BankCard c WHERE c.expiryDate < :currentDate")
     List<BankCard> findExpiredCards(@Param("currentDate") LocalDate currentDate);
+    
+    @Query("SELECT c FROM BankCard c WHERE c.status = :status")
+    Page<BankCard> findByStatus(@Param("status") CardStatus status, Pageable pageable);
+    
+    @Query("SELECT c FROM BankCard c WHERE c.balance < :minBalance")
+    List<BankCard> findByBalanceLessThan(@Param("minBalance") java.math.BigDecimal minBalance);
 }

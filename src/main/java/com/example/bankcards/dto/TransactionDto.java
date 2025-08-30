@@ -18,6 +18,8 @@ public class TransactionDto {
     private String toCardMasked;
     private BigDecimal amount;
     private TransactionStatus status;
-    private LocalDateTime createdAt;
     private String description;
+    private LocalDateTime createdAt;
+    private Long fromCardId;
+    private Long toCardId;
 }

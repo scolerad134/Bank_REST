@@ -21,4 +21,7 @@ public class BankCardDto {
     private CardStatus status;
     private BigDecimal balance;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private Long ownerId;
+    private String ownerUsername;
 }

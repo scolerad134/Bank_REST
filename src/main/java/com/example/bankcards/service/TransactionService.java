@@ -14,6 +14,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @Transactional
@@ -92,20 +94,49 @@ public class TransactionService {
         return mapToDto(savedTransaction);
     }
     
+    public TransactionDto getTransactionById(Long id) {
+        Transaction transaction = transactionRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Transaction not found with id: " + id));
+        return mapToDto(transaction);
+    }
+    
     public Page<TransactionDto> getUserTransactions(Long userId, Pageable pageable) {
         Page<Transaction> transactions = transactionRepository.findByUserId(userId, pageable);
         return transactions.map(this::mapToDto);
     }
     
-    private TransactionDto mapToDto(Transaction transaction) {
+    public Page<TransactionDto> getAllTransactions(Pageable pageable) {
+        Page<Transaction> transactions = transactionRepository.findAll(pageable);
+        return transactions.map(this::mapToDto);
+    }
+    
+    public Page<TransactionDto> getTransactionsByStatus(TransactionStatus status, Pageable pageable) {
+        Page<Transaction> transactions = transactionRepository.findByStatus(status, pageable);
+        return transactions.map(this::mapToDto);
+    }
+    
+    public Page<TransactionDto> getTransactionsByDateRange(LocalDateTime startDate, 
+                                                          LocalDateTime endDate, 
+                                                          Pageable pageable) {
+        Page<Transaction> transactions = transactionRepository.findByDateRange(startDate, endDate, pageable);
+        return transactions.map(this::mapToDto);
+    }
+    
+    public List<Transaction> getTransactionsByUserId(Long userId) {
+        return transactionRepository.findByFromCardOwnerIdOrToCardOwnerId(userId, userId);
+    }
+    
+    public TransactionDto mapToDto(Transaction transaction) {
         return TransactionDto.builder()
             .id(transaction.getId())
             .fromCardMasked(transaction.getFromCard().getMaskedNumber())
             .toCardMasked(transaction.getToCard().getMaskedNumber())
             .amount(transaction.getAmount())
             .status(transaction.getStatus())
-            .createdAt(transaction.getCreatedAt())
             .description(transaction.getDescription())
+            .createdAt(transaction.getCreatedAt())
+            .fromCardId(transaction.getFromCard().getId())
+            .toCardId(transaction.getToCard().getId())
             .build();
     }
 }

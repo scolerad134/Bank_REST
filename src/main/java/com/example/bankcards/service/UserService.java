@@ -1,6 +1,7 @@
 package com.example.bankcards.service;
 
 import com.example.bankcards.dto.CreateUserRequest;
+import com.example.bankcards.dto.UpdateUserRequest;
 import com.example.bankcards.dto.UserDto;
 import com.example.bankcards.entity.User;
 import com.example.bankcards.entity.Role;
@@ -9,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service
 @Transactional
@@ -51,7 +54,7 @@ public class UserService {
         return mapToDto(user);
     }
     
-    public UserDto updateUser(Long id, CreateUserRequest request) {
+    public UserDto updateUser(Long id, UpdateUserRequest request) {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
         
@@ -77,6 +80,21 @@ public class UserService {
         log.info("Deleted user with id: {}", id);
     }
     
+    public Page<UserDto> getAllUsers(Pageable pageable) {
+        Page<User> users = userRepository.findAll(pageable);
+        return users.map(this::mapToDto);
+    }
+    
+    public Page<UserDto> getUsersByRole(Role role, Pageable pageable) {
+        Page<User> users = userRepository.findByRole(role, pageable);
+        return users.map(this::mapToDto);
+    }
+    
+    public Page<UserDto> searchUsers(String searchTerm, Pageable pageable) {
+        Page<User> users = userRepository.findByUsernameOrEmailContaining(searchTerm, pageable);
+        return users.map(this::mapToDto);
+    }
+    
     private UserDto mapToDto(User user) {
         return UserDto.builder()
             .id(user.getId())
@@ -84,6 +102,8 @@ public class UserService {
             .email(user.getEmail())
             .role(user.getRole())
             .enabled(user.isEnabled())
+            .createdAt(user.getCreatedAt())
+            .updatedAt(user.getUpdatedAt())
             .build();
     }
 }

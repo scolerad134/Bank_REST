@@ -5,19 +5,19 @@
 ## 🚀 Возможности
 
 ### 👤 Пользователи
-- **Регистрация и аутентификация** через JWT токены
+- **Создание и управление** пользователями
 - **Роли**: USER и ADMIN
-- **Управление профилем**
+- **Поиск и фильтрация** пользователей
 
 ### 💳 Банковские карты
-- **Создание карт** (только для админов)
-- **Просмотр своих карт** с поиском и пагинацией
+- **Создание карт** для пользователей
+- **Просмотр карт** с поиском и пагинацией
 - **Блокировка/активация** карт
 - **Маскирование номеров** для безопасности
 - **Автоматическое истечение** срока действия
 
 ### 💰 Транзакции
-- **Переводы между своими картами**
+- **Переводы между картами** одного пользователя
 - **История операций** с пагинацией
 - **Валидация баланса** и статуса карт
 - **Аудит всех операций**
@@ -26,7 +26,6 @@
 
 - **Java 17+**
 - **Spring Boot 3.5.5**
-- **Spring Security + JWT**
 - **Spring Data JPA**
 - **PostgreSQL**
 - **Liquibase** для миграций
@@ -74,11 +73,11 @@ mvn spring-boot:run
 - **Swagger UI**: http://localhost:8080/swagger-ui/index.html
 - **OpenAPI JSON**: http://localhost:8080/v3/api-docs
 
-## 🔐 Аутентификация
+## 👥 Управление пользователями
 
-### Регистрация пользователя
+### Создание пользователя
 ```bash
-curl -X POST http://localhost:8080/api/auth/register \
+curl -X POST http://localhost:8080/api/users \
   -H "Content-Type: application/json" \
   -d '{
     "username": "testuser",
@@ -88,51 +87,73 @@ curl -X POST http://localhost:8080/api/auth/register \
   }'
 ```
 
-### Вход в систему
+### Получение списка пользователей
 ```bash
-curl -X POST http://localhost:8080/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "testuser",
-    "password": "password123"
-  }'
+curl -X GET "http://localhost:8080/api/users?page=0&size=10&sortBy=username&sortDir=asc"
+```
+
+### Поиск пользователей
+```bash
+curl -X GET "http://localhost:8080/api/users/search?q=test&page=0&size=10"
+```
+
+### Получение пользователей по роли
+```bash
+curl -X GET "http://localhost:8080/api/users/role/ADMIN?page=0&size=10"
 ```
 
 ## 💳 Работа с картами
 
-### Создание карты (требует роль ADMIN)
+### Создание карты
 ```bash
 curl -X POST http://localhost:8080/api/cards \
-  -H "Authorization: Bearer <JWT_TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
     "cardholderName": "Иван Иванов",
-    "ownerId": 1
+    "ownerId": 1,
+    "initialBalance": 10000.00
   }'
 ```
 
-### Получение списка карт
+### Получение списка всех карт
 ```bash
-curl -X GET "http://localhost:8080/api/cards?page=0&size=10" \
-  -H "Authorization: Bearer <JWT_TOKEN>"
+curl -X GET "http://localhost:8080/api/cards?page=0&size=10&sortBy=createdAt&sortDir=desc"
+```
+
+### Получение карт пользователя
+```bash
+curl -X GET "http://localhost:8080/api/cards/user/1?page=0&size=10&status=ACTIVE"
+```
+
+### Получение карт по статусу
+```bash
+curl -X GET "http://localhost:8080/api/cards/status/ACTIVE?page=0&size=10"
 ```
 
 ### Обновление статуса карты
 ```bash
 curl -X PUT http://localhost:8080/api/cards/1/status \
-  -H "Authorization: Bearer <JWT_TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
     "status": "BLOCKED"
   }'
 ```
 
+### Получение просроченных карт
+```bash
+curl -X GET http://localhost:8080/api/cards/expired
+```
+
+### Получение карт с низким балансом
+```bash
+curl -X GET "http://localhost:8080/api/cards/low-balance?minBalance=100"
+```
+
 ## 💰 Переводы между картами
 
 ### Выполнение перевода
 ```bash
-curl -X POST http://localhost:8080/api/transactions/transfer \
-  -H "Authorization: Bearer <JWT_TOKEN>" \
+curl -X POST "http://localhost:8080/api/transactions/transfer?userId=1" \
   -H "Content-Type: application/json" \
   -d '{
     "fromCardId": 1,
@@ -142,10 +163,29 @@ curl -X POST http://localhost:8080/api/transactions/transfer \
   }'
 ```
 
-### История транзакций
+### История транзакций пользователя
 ```bash
-curl -X GET "http://localhost:8080/api/transactions/history?page=0&size=20" \
-  -H "Authorization: Bearer <JWT_TOKEN>"
+curl -X GET "http://localhost:8080/api/transactions/user/1?page=0&size=20"
+```
+
+### Получение всех транзакций
+```bash
+curl -X GET "http://localhost:8080/api/transactions?page=0&size=20&sortBy=createdAt&sortDir=desc"
+```
+
+### Получение транзакций по статусу
+```bash
+curl -X GET "http://localhost:8080/api/transactions/status/COMPLETED?page=0&size=20"
+```
+
+### Получение транзакций по диапазону дат
+```bash
+curl -X GET "http://localhost:8080/api/transactions/date-range?startDate=2024-01-01T00:00:00&endDate=2024-01-31T23:59:59&page=0&size=20"
+```
+
+### Получение всех транзакций пользователя
+```bash
+curl -X GET http://localhost:8080/api/transactions/user/1/all
 ```
 
 ## 🗄 База данных
@@ -208,7 +248,6 @@ logging:
 - `DB_URL` - URL базы данных
 - `DB_USERNAME` - имя пользователя БД
 - `DB_PASSWORD` - пароль БД
-- `JWT_SECRET` - секретный ключ для JWT
 
 ## 🐳 Docker
 
@@ -260,9 +299,7 @@ src/
 │   │   ├── controller/      # REST контроллеры
 │   │   ├── dto/            # Data Transfer Objects
 │   │   ├── entity/         # JPA сущности
-│   │   ├── exception/      # Кастомные исключения
 │   │   ├── repository/     # Репозитории
-│   │   ├── security/       # Безопасность
 │   │   └── service/        # Бизнес-логика
 │   └── resources/
 │       ├── db/migration/   # Миграции Liquibase
@@ -272,9 +309,7 @@ src/
 
 ## 🚨 Безопасность
 
-- **JWT токены** для аутентификации
 - **BCrypt** для хеширования паролей
-- **Ролевой доступ** к ресурсам
 - **Валидация входных данных**
 - **Маскирование** номеров карт
 - **Аудит** всех операций
