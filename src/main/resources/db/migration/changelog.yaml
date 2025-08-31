@@ -1,4 +1,4 @@
 databaseChangeLog:
   - include:
-      file: db/migration/V1__Create_initial_tables.sql
+      file: V1__Create_initial_tables.sql
       relativeToChangelogFile: true

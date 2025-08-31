@@ -11,7 +11,7 @@ spring:
   
   # Конфигурация базы данных
   datasource:
-    url: jdbc:postgresql://localhost:5432/bankdb
+    url: jdbc:postgresql://localhost:5433/bankdb
     username: bankuser
     password: bankpass
     driver-class-name: org.postgresql.Driver
@@ -37,11 +37,11 @@ spring:
         order_updates: true
         batch_versioned_data: true
   
-        # Конфигурация Liquibase
-      liquibase:
-        enabled: true
-        change-log: classpath:db/migration/changelog.yaml
-        contexts: dev
+  # Конфигурация Liquibase
+  liquibase:
+    enabled: true
+    change-log: classpath:db/migration/changelog.yaml
+    contexts: dev
   
   # Конфигурация валидации
   validation:
@@ -109,9 +109,9 @@ spring:
       on-profile: dev
   
   datasource:
-    url: jdbc:postgresql://localhost:5432/bankdb_dev
-    username: bankuser_dev
-    password: bankpass_dev
+    url: jdbc:postgresql://localhost:5433/bankdb
+    username: bankuser
+    password: bankpass
   
   jpa:
     show-sql: true
@@ -130,7 +130,7 @@ spring:
       on-profile: prod
   
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/bankdb}
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/bankdb}
     username: ${DB_USERNAME:bankuser}
     password: ${DB_PASSWORD:bankpass}
   
@@ -146,9 +146,9 @@ logging:
   level:
     root: WARN
     com.example.bankcards: INFO
-
 # Переменные окружения для production
 app:
   security:
     jwt:
       secret: ${JWT_SECRET:your-production-secret-key}
+

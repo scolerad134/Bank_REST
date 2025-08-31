@@ -1,31 +1,28 @@
-FROM openjdk:17-jdk-slim
+# Многоэтапная сборка
+FROM openjdk:17-jdk-slim AS build
+
+# Устанавливаем Maven
+RUN apt-get update && apt-get install -y maven
 
 WORKDIR /app
 
-# Копируем pom.xml и загружаем зависимости
+# Копируем pom.xml и src
 COPY pom.xml .
-RUN mvn dependency:go-offline -B
-
-# Копируем исходный код
 COPY src ./src
 
 # Собираем приложение
 RUN mvn clean package -DskipTests
 
-# Создаем пользователя для безопасности
-RUN addgroup --system javauser && adduser --system --ingroup javauser javauser
+# Runtime образ
+FROM openjdk:17-jdk-slim
 
-# Копируем собранный JAR файл
-RUN cp target/*.jar app.jar
+WORKDIR /app
 
-# Меняем владельца файлов
-RUN chown -R javauser:javauser /app
-
-# Переключаемся на пользователя
-USER javauser
+# Копируем собранный JAR
+COPY --from=build /app/target/*.jar app.jar
 
 # Открываем порт
 EXPOSE 8080
 
 # Запускаем приложение
-ENTRYPOINT ["java", "-jar", "app.jar"]
+CMD ["java", "-jar", "app.jar"]

@@ -7,7 +7,8 @@ import com.example.bankcards.entity.User;
 import com.example.bankcards.entity.Role;
 import com.example.bankcards.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
@@ -18,11 +19,8 @@ import org.springframework.data.domain.Pageable;
 @Slf4j
 public class UserService {
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
     }
     
     public UserDto createUser(CreateUserRequest request) {
@@ -36,7 +34,7 @@ public class UserService {
         
         User user = User.builder()
             .username(request.getUsername())
-            .password(passwordEncoder.encode(request.getPassword()))
+            .password(hashPassword(request.getPassword()))
             .email(request.getEmail())
             .role(request.getRole())
             .enabled(true)
@@ -63,7 +61,7 @@ public class UserService {
         user.setRole(request.getRole());
         
         if (request.getPassword() != null && !request.getPassword().isEmpty()) {
-            user.setPassword(passwordEncoder.encode(request.getPassword()));
+            user.setPassword(hashPassword(request.getPassword()));
         }
         
         User savedUser = userRepository.save(user);
@@ -105,5 +103,21 @@ public class UserService {
             .createdAt(user.getCreatedAt())
             .updatedAt(user.getUpdatedAt())
             .build();
+    }
+    
+    private String hashPassword(String password) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] hash = md.digest(password.getBytes());
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Error hashing password", e);
+        }
     }
 }

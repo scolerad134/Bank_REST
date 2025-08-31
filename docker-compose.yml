@@ -12,7 +12,8 @@ services:
       - SPRING_JPA_HIBERNATE_DDL_AUTO=validate
       - SPRING_LIQUIBASE_ENABLED=true
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     volumes:
       - ./logs:/app/logs
     restart: unless-stopped
