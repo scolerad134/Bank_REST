@@ -19,7 +19,7 @@ FROM openjdk:17-jdk-slim
 WORKDIR /app
 
 # Копируем собранный JAR
-COPY --from=build /app/target/*.jar app.jar
+COPY --from=build /app/target/Bank_REST-*.jar app.jar
 
 # Открываем порт
 EXPOSE 8080

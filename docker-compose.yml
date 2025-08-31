@@ -41,4 +41,4 @@ volumes:
 
 networks:
   default:
-    name: bank-network
+    name: bank-rest-network

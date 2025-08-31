@@ -8,11 +8,11 @@
 		<version>3.5.5</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.example.bankcards</groupId>
-	<artifactId>bank-app</artifactId>
+	<groupId>com.example</groupId>
+	<artifactId>Bank_REST</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>bank-app</name>
-	<description>Bank application for Spring Boot</description>
+	<name>Bank_REST</name>
+	<description>Bank Card Management System REST API</description>
 	<url/>
 	<licenses>
 		<license/>

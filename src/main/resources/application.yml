@@ -7,7 +7,7 @@ server:
 
 spring:
   application:
-    name: bank-cards-management
+    name: Bank_REST
   
   # Конфигурация базы данных
   datasource:
