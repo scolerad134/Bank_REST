@@ -2,9 +2,10 @@ package com.example.bankcards.controller;
 
 import com.example.bankcards.dto.CreateTransactionRequest;
 import com.example.bankcards.dto.TransactionDto;
-import com.example.bankcards.entity.Transaction;
 import com.example.bankcards.entity.TransactionStatus;
 import com.example.bankcards.service.TransactionService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -18,14 +19,15 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/transactions")
+@RequestMapping("/api/v1/transactions")
 @RequiredArgsConstructor
+@Tag(name = "Transactions", description = "API для управления транзакциями")
 public class TransactionController {
     
     private final TransactionService transactionService;
     
-    @PostMapping("/transfer")
-    public ResponseEntity<TransactionDto> transferMoney(
+    @PostMapping
+    public ResponseEntity<TransactionDto> createTransaction(
             @Valid @RequestBody CreateTransactionRequest request,
             @RequestParam Long userId) {
         
@@ -92,10 +94,7 @@ public class TransactionController {
     
     @GetMapping("/user/{userId}/all")
     public ResponseEntity<List<TransactionDto>> getAllUserTransactions(@PathVariable Long userId) {
-        List<Transaction> transactions = transactionService.getTransactionsByUserId(userId);
-        List<TransactionDto> transactionDtos = transactions.stream()
-            .map(transaction -> transactionService.mapToDto(transaction))
-            .toList();
-        return ResponseEntity.ok(transactionDtos);
+        List<TransactionDto> transactions = transactionService.getUserTransactionHistory(userId);
+        return ResponseEntity.ok(transactions);
     }
 }

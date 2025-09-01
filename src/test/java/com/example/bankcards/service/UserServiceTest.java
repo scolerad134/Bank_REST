@@ -53,16 +53,13 @@ class UserServiceTest {
     
     @Test
     void createUser_Success() {
-        // Given
         when(userRepository.existsByUsername("testuser")).thenReturn(false);
         when(userRepository.existsByEmail("test@example.com")).thenReturn(false);
         when(passwordEncoder.encode("password123")).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(user);
         
-        // When
         UserDto result = userService.createUser(createUserRequest);
         
-        // Then
         assertNotNull(result);
         assertEquals("testuser", result.getUsername());
         assertEquals("test@example.com", result.getEmail());
@@ -74,10 +71,8 @@ class UserServiceTest {
     
     @Test
     void createUser_UsernameAlreadyExists_ThrowsException() {
-        // Given
         when(userRepository.existsByUsername("testuser")).thenReturn(true);
         
-        // When & Then
         assertThrows(RuntimeException.class, () -> {
             userService.createUser(createUserRequest);
         });
@@ -87,11 +82,9 @@ class UserServiceTest {
     
     @Test
     void createUser_EmailAlreadyExists_ThrowsException() {
-        // Given
         when(userRepository.existsByUsername("testuser")).thenReturn(false);
         when(userRepository.existsByEmail("test@example.com")).thenReturn(true);
         
-        // When & Then
         assertThrows(RuntimeException.class, () -> {
             userService.createUser(createUserRequest);
         });

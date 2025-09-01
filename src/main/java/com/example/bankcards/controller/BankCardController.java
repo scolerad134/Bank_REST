@@ -5,6 +5,8 @@ import com.example.bankcards.dto.CreateCardRequest;
 import com.example.bankcards.dto.UpdateCardStatusRequest;
 import com.example.bankcards.entity.CardStatus;
 import com.example.bankcards.service.BankCardService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -13,13 +15,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.math.BigDecimal;
-import java.util.List;
-import com.example.bankcards.entity.BankCard;
+
 
 @RestController
-@RequestMapping("/api/cards")
+@RequestMapping("/api/v1/cards")
 @RequiredArgsConstructor
+@Tag(name = "Bank Cards", description = "API для управления банковскими картами")
 public class BankCardController {
     
     private final BankCardService bankCardService;
@@ -91,23 +92,5 @@ public class BankCardController {
         return ResponseEntity.noContent().build();
     }
     
-    @GetMapping("/expired")
-    public ResponseEntity<List<BankCardDto>> getExpiredCards() {
-        List<BankCard> expiredCards = bankCardService.getExpiredCards();
-        List<BankCardDto> expiredCardDtos = expiredCards.stream()
-            .map(card -> bankCardService.mapToDto(card))
-            .toList();
-        return ResponseEntity.ok(expiredCardDtos);
-    }
-    
-    @GetMapping("/low-balance")
-    public ResponseEntity<List<BankCardDto>> getLowBalanceCards(
-            @RequestParam(defaultValue = "100") BigDecimal minBalance) {
-        
-        List<BankCard> lowBalanceCards = bankCardService.getLowBalanceCards(minBalance);
-        List<BankCardDto> lowBalanceCardDtos = lowBalanceCards.stream()
-            .map(card -> bankCardService.mapToDto(card))
-            .toList();
-        return ResponseEntity.ok(lowBalanceCardDtos);
-    }
+
 }

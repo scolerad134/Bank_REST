@@ -21,10 +21,10 @@ public class BankCard {
     private Long id;
     
     @Column(name = "card_number", nullable = false, unique = true, length = 255)
-    private String cardNumber; // зашифрованный номер
+    private String cardNumber;
     
     @Column(name = "masked_number", nullable = false, length = 20)
-    private String maskedNumber; // маскированный для отображения
+    private String maskedNumber;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)

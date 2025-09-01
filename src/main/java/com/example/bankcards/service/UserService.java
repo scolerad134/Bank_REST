@@ -5,10 +5,10 @@ import com.example.bankcards.dto.UpdateUserRequest;
 import com.example.bankcards.dto.UserDto;
 import com.example.bankcards.entity.User;
 import com.example.bankcards.entity.Role;
+import com.example.bankcards.exception.UserNotFoundException;
 import com.example.bankcards.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
@@ -19,8 +19,11 @@ import org.springframework.data.domain.Pageable;
 @Slf4j
 public class UserService {
     private final UserRepository userRepository;
-    public UserService(UserRepository userRepository) {
+    private final PasswordEncoder passwordEncoder;
+    
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
     
     public UserDto createUser(CreateUserRequest request) {
@@ -34,7 +37,7 @@ public class UserService {
         
         User user = User.builder()
             .username(request.getUsername())
-            .password(hashPassword(request.getPassword()))
+            .password(passwordEncoder.encode(request.getPassword()))
             .email(request.getEmail())
             .role(request.getRole())
             .enabled(true)
@@ -48,20 +51,20 @@ public class UserService {
     
     public UserDto getUserById(Long id) {
         User user = userRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+            .orElseThrow(() -> new UserNotFoundException(id));
         return mapToDto(user);
     }
     
     public UserDto updateUser(Long id, UpdateUserRequest request) {
         User user = userRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+            .orElseThrow(() -> new UserNotFoundException(id));
         
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         user.setRole(request.getRole());
         
         if (request.getPassword() != null && !request.getPassword().isEmpty()) {
-            user.setPassword(hashPassword(request.getPassword()));
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
         }
         
         User savedUser = userRepository.save(user);
@@ -72,7 +75,7 @@ public class UserService {
     
     public void deleteUser(Long id) {
         if (!userRepository.existsById(id)) {
-            throw new RuntimeException("User not found with id: " + id);
+            throw new UserNotFoundException(id);
         }
         userRepository.deleteById(id);
         log.info("Deleted user with id: {}", id);
@@ -105,19 +108,4 @@ public class UserService {
             .build();
     }
     
-    private String hashPassword(String password) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] hash = md.digest(password.getBytes());
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
-                hexString.append(hex);
-            }
-            return hexString.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Error hashing password", e);
-        }
-    }
 }

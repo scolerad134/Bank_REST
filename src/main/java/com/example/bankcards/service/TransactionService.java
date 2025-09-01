@@ -6,6 +6,11 @@ import com.example.bankcards.entity.BankCard;
 import com.example.bankcards.entity.CardStatus;
 import com.example.bankcards.entity.Transaction;
 import com.example.bankcards.entity.TransactionStatus;
+import com.example.bankcards.exception.CardNotFoundException;
+import com.example.bankcards.exception.CardExpiredException;
+import com.example.bankcards.exception.InsufficientFundsException;
+import com.example.bankcards.exception.TransactionException;
+import com.example.bankcards.exception.AccessDeniedException;
 import com.example.bankcards.repository.BankCardRepository;
 import com.example.bankcards.repository.TransactionRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -32,34 +37,29 @@ public class TransactionService {
     
     public TransactionDto createTransaction(CreateTransactionRequest request, Long userId) {
         BankCard fromCard = bankCardRepository.findById(request.getFromCardId())
-            .orElseThrow(() -> new RuntimeException("From card not found"));
+            .orElseThrow(() -> new CardNotFoundException("From card not found"));
         
         BankCard toCard = bankCardRepository.findById(request.getToCardId())
-            .orElseThrow(() -> new RuntimeException("To card not found"));
+            .orElseThrow(() -> new CardNotFoundException("To card not found"));
         
-        // Проверяем, что обе карты принадлежат пользователю
         if (!fromCard.getOwner().getId().equals(userId) || 
             !toCard.getOwner().getId().equals(userId)) {
-            throw new RuntimeException("Access denied to one of the cards");
+            throw new AccessDeniedException("Access denied to one of the cards");
         }
         
-        // Проверяем статус карт
         if (fromCard.getStatus() != CardStatus.ACTIVE || toCard.getStatus() != CardStatus.ACTIVE) {
-            throw new RuntimeException("One of the cards is not active");
+            throw new TransactionException("One of the cards is not active");
         }
         
-        // Проверяем баланс
         if (fromCard.getBalance().compareTo(request.getAmount()) < 0) {
-            throw new RuntimeException("Insufficient funds on card: " + fromCard.getId());
+            throw new InsufficientFundsException(fromCard.getBalance(), request.getAmount());
         }
         
-        // Проверяем срок действия
         if (fromCard.getExpiryDate().isBefore(LocalDate.now()) || 
             toCard.getExpiryDate().isBefore(LocalDate.now())) {
-            throw new RuntimeException("One of the cards has expired");
+            throw new CardExpiredException("One of the cards has expired");
         }
         
-        // Создаем транзакцию
         Transaction transaction = Transaction.builder()
             .fromCard(fromCard)
             .toCard(toCard)
@@ -70,7 +70,6 @@ public class TransactionService {
         
         Transaction savedTransaction = transactionRepository.save(transaction);
         
-        // Выполняем перевод
         try {
             fromCard.setBalance(fromCard.getBalance().subtract(request.getAmount()));
             toCard.setBalance(toCard.getBalance().add(request.getAmount()));
@@ -88,7 +87,7 @@ public class TransactionService {
             savedTransaction.setStatus(TransactionStatus.FAILED);
             transactionRepository.save(savedTransaction);
             log.error("Transaction failed: {}", e.getMessage());
-            throw new RuntimeException("Transaction failed: " + e.getMessage());
+            throw new TransactionException("Transaction failed: " + e.getMessage(), e);
         }
         
         return mapToDto(savedTransaction);
@@ -96,7 +95,7 @@ public class TransactionService {
     
     public TransactionDto getTransactionById(Long id) {
         Transaction transaction = transactionRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Transaction not found with id: " + id));
+            .orElseThrow(() -> new TransactionException("Transaction not found with id: " + id));
         return mapToDto(transaction);
     }
     
@@ -122,21 +121,20 @@ public class TransactionService {
         return transactions.map(this::mapToDto);
     }
     
-    public List<Transaction> getTransactionsByUserId(Long userId) {
-        return transactionRepository.findByFromCardOwnerIdOrToCardOwnerId(userId, userId);
+    public List<TransactionDto> getUserTransactionHistory(Long userId) {
+        List<Transaction> transactions = transactionRepository.findByFromCardOwnerIdOrToCardOwnerId(userId, userId);
+        return transactions.stream().map(this::mapToDto).toList();
     }
     
-    public TransactionDto mapToDto(Transaction transaction) {
+    private TransactionDto mapToDto(Transaction transaction) {
         return TransactionDto.builder()
             .id(transaction.getId())
-            .fromCardMasked(transaction.getFromCard().getMaskedNumber())
-            .toCardMasked(transaction.getToCard().getMaskedNumber())
+            .fromCardId(transaction.getFromCard().getId())
+            .toCardId(transaction.getToCard().getId())
             .amount(transaction.getAmount())
             .status(transaction.getStatus())
             .description(transaction.getDescription())
             .createdAt(transaction.getCreatedAt())
-            .fromCardId(transaction.getFromCard().getId())
-            .toCardId(transaction.getToCard().getId())
             .build();
     }
 }

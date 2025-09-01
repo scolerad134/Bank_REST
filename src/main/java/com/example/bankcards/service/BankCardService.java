@@ -7,8 +7,11 @@ import com.example.bankcards.entity.BankCard;
 import com.example.bankcards.entity.CardStatus;
 import com.example.bankcards.entity.User;
 import com.example.bankcards.entity.Role;
+import com.example.bankcards.exception.CardNotFoundException;
+import com.example.bankcards.exception.UserNotFoundException;
 import com.example.bankcards.repository.BankCardRepository;
 import com.example.bankcards.repository.UserRepository;
+import com.example.bankcards.security.EncryptionService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,26 +28,30 @@ import java.util.Random;
 public class BankCardService {
     private final BankCardRepository bankCardRepository;
     private final UserRepository userRepository;
+    private final EncryptionService encryptionService;
     
-    public BankCardService(BankCardRepository bankCardRepository, UserRepository userRepository) {
+    public BankCardService(BankCardRepository bankCardRepository, 
+                          UserRepository userRepository,
+                          EncryptionService encryptionService) {
         this.bankCardRepository = bankCardRepository;
         this.userRepository = userRepository;
+        this.encryptionService = encryptionService;
     }
     
     public BankCardDto createCard(CreateCardRequest request) {
         User owner = userRepository.findById(request.getOwnerId())
-            .orElseThrow(() -> new RuntimeException("User not found with id: " + request.getOwnerId()));
+            .orElseThrow(() -> new UserNotFoundException(request.getOwnerId()));
         
-        // Генерируем номер карты (16 цифр)
         String cardNumber = generateCardNumber();
-        String maskedNumber = maskCardNumber(cardNumber);
+        String encryptedCardNumber = encryptionService.encrypt(cardNumber);
+        String maskedNumber = encryptionService.maskCardNumber(cardNumber);
         
         BankCard card = BankCard.builder()
-            .cardNumber(cardNumber) // В реальном проекте здесь должно быть шифрование
+            .cardNumber(encryptedCardNumber)
             .maskedNumber(maskedNumber)
             .owner(owner)
             .cardholderName(request.getCardholderName())
-            .expiryDate(LocalDate.now().plusYears(4)) // карта на 4 года
+            .expiryDate(LocalDate.now().plusYears(4))
             .status(CardStatus.ACTIVE)
             .balance(request.getInitialBalance())
             .build();
@@ -57,7 +64,7 @@ public class BankCardService {
     
     public BankCardDto getCardById(Long id) {
         BankCard card = bankCardRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Card not found with id: " + id));
+            .orElseThrow(() -> new CardNotFoundException(id));
         return mapToDto(card);
     }
     
@@ -81,7 +88,7 @@ public class BankCardService {
     
     public BankCardDto updateCardStatus(Long id, UpdateCardStatusRequest request) {
         BankCard card = bankCardRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Card not found with id: " + id));
+            .orElseThrow(() -> new CardNotFoundException(id));
         
         card.setStatus(request.getStatus());
         BankCard savedCard = bankCardRepository.save(card);
@@ -92,47 +99,50 @@ public class BankCardService {
     
     public void deleteCard(Long id) {
         if (!bankCardRepository.existsById(id)) {
-            throw new RuntimeException("Card not found with id: " + id);
+            throw new CardNotFoundException(id);
         }
         bankCardRepository.deleteById(id);
         log.info("Deleted card: {}", id);
     }
     
-    public List<BankCard> getExpiredCards() {
-        return bankCardRepository.findExpiredCards(LocalDate.now());
-    }
-    
-    public List<BankCard> getLowBalanceCards(BigDecimal minBalance) {
-        return bankCardRepository.findByBalanceLessThan(minBalance);
-    }
-    
-    private String generateCardNumber() {
-        // Простая генерация номера карты (в реальном проекте нужна более сложная логика)
-        StringBuilder sb = new StringBuilder();
-        Random random = new Random();
-        for (int i = 0; i < 16; i++) {
-            sb.append(random.nextInt(10));
-        }
-        return sb.toString();
-    }
-    
-    private String maskCardNumber(String cardNumber) {
-        // Маскируем номер карты: **** **** **** 1234
-        return "**** **** **** " + cardNumber.substring(12);
-    }
-    
-    public BankCardDto mapToDto(BankCard card) {
+    public BankCardDto getCardBalance(Long id) {
+        BankCard card = bankCardRepository.findById(id)
+            .orElseThrow(() -> new CardNotFoundException(id));
+        
         return BankCardDto.builder()
             .id(card.getId())
             .maskedNumber(card.getMaskedNumber())
+            .balance(card.getBalance())
+            .status(card.getStatus())
+            .build();
+    }
+    
+    private BankCardDto mapToDto(BankCard card) {
+        return BankCardDto.builder()
+            .id(card.getId())
+            .maskedNumber(card.getMaskedNumber())
+            .ownerId(card.getOwner().getId())
             .cardholderName(card.getCardholderName())
             .expiryDate(card.getExpiryDate())
             .status(card.getStatus())
             .balance(card.getBalance())
             .createdAt(card.getCreatedAt())
             .updatedAt(card.getUpdatedAt())
-            .ownerId(card.getOwner().getId())
-            .ownerUsername(card.getOwner().getUsername())
             .build();
+    }
+    
+    private String generateCardNumber() {
+        Random random = new Random();
+        StringBuilder cardNumber = new StringBuilder();
+        
+        for (int i = 0; i < 16; i++) {
+            cardNumber.append(random.nextInt(10));
+        }
+        
+        return cardNumber.toString();
+    }
+    
+    private String maskCardNumber(String cardNumber) {
+        return encryptionService.maskCardNumber(cardNumber);
     }
 }

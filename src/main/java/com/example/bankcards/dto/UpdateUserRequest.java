@@ -20,7 +20,7 @@ public class UpdateUserRequest {
     private String username;
     
     @Size(min = 6, message = "Password must be at least 6 characters")
-    private String password; // Optional for updates
+    private String password;
     
     @NotBlank(message = "Email is required")
     @Email(message = "Email should be valid")

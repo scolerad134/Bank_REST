@@ -5,6 +5,8 @@ import com.example.bankcards.dto.UpdateUserRequest;
 import com.example.bankcards.dto.UserDto;
 import com.example.bankcards.entity.Role;
 import com.example.bankcards.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -15,8 +17,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
+@Tag(name = "Users", description = "API для управления пользователями")
 public class UserController {
     
     private final UserService userService;
