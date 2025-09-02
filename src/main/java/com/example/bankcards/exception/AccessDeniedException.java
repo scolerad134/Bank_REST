@@ -9,3 +9,6 @@ public class AccessDeniedException extends RuntimeException {
         super("Access denied to " + resource + " with id: " + id);
     }
 }
+
+
+
