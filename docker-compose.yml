@@ -1,42 +1,69 @@
-services:
-  app:
-    build: .
-    ports:
-      - "8080:8080"
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/bankdb
-      - SPRING_DATASOURCE_USERNAME=bankuser
-      - SPRING_DATASOURCE_PASSWORD=bankpass
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=validate
-      - SPRING_LIQUIBASE_ENABLED=true
-    depends_on:
-      db:
-        condition: service_healthy
-    volumes:
-      - ./logs:/app/logs
-    restart: unless-stopped
+version: '3.8'
 
-  db:
+services:
+  postgres:
     image: postgres:15-alpine
+    container_name: bank-cards-db
     environment:
-      - POSTGRES_DB=bankdb
-      - POSTGRES_USER=bankuser
-      - POSTGRES_PASSWORD=bankpass
+      POSTGRES_DB: bank_cards
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - bank-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bankuser -d bankdb"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bank-cards-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bank_cards
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      JWT_SECRET: mySecretKey123456789012345678901234567890
+      JWT_EXPIRATION: 86400000
+    ports:
+      - "8080:8080"
+    networks:
+      - bank-network
+    volumes:
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  adminer:
+    image: adminer:latest
+    container_name: bank-cards-adminer
+    depends_on:
+      - postgres
+    ports:
+      - "8081:8080"
+    networks:
+      - bank-network
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
 
 volumes:
   postgres_data:
     driver: local
 
 networks:
-  default:
-    name: bank-rest-network
+  bank-network:
+    driver: bridge

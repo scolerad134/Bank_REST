@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: cards-management-system
+  
+  datasource:
+    url: jdbc:postgresql://postgres:5432/bank_cards
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+  
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    drop-first: false
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+logging:
+  level:
+    com.bank.cards: INFO
+    org.springframework.security: WARN
+  file:
+    name: /app/logs/application.log
+  pattern:
+    file: '%d{ISO8601} [%thread] %-5level %logger{36} - %msg%n'
+
+jwt:
+  secret: ${JWT_SECRET:mySecretKey123456789012345678901234567890}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

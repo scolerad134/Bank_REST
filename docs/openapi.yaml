@@ -1,19 +1,48 @@
 openapi: 3.0.3
 info:
-  title: Bank Cards Management API
-  description: API для управления банковскими картами без аутентификации
+  title: Bank Cards Management System API
+  description: |
+    REST API for managing bank cards, users, and transactions.
+    
+    ## Features
+    - User registration and authentication
+    - JWT-based security
+    - Card management (create, view, update status, delete)
+    - Money transfers between own cards
+    - Transaction history
+    
+    ## Authentication
+    Most endpoints require JWT authentication. Use the `/auth/login` endpoint to obtain a token.
+    
+    ## Card Number Masking
+    Card numbers are displayed in masked format (e.g., "** ** 1234") for security purposes.
   version: 1.0.0
   contact:
     name: Bank Development Team
     email: dev@bank.com
+  license:
+    name: MIT License
+    url: https://opensource.org/licenses/MIT
 
 servers:
-  - url: http://localhost:8080
+  - url: http://localhost:8080/api
     description: Development server
+  - url: https://api.bank.com/api
+    description: Production server
+
+security:
+  - bearerAuth: []
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Bearer token authentication
+
   schemas:
-    UserDto:
+    User:
       type: object
       properties:
         id:
@@ -21,150 +50,159 @@ components:
           format: int64
         username:
           type: string
+          example: "john_doe"
+        fullName:
+          type: string
+          example: "John Doe"
         email:
           type: string
-        role:
-          type: string
-          enum: [USER, ADMIN]
-        enabled:
-          type: boolean
+          format: email
+          example: "john@example.com"
         createdAt:
           type: string
           format: date-time
         updatedAt:
           type: string
           format: date-time
-    
-    CreateUserRequest:
-      type: object
-      required:
-        - username
-        - password
-        - email
-        - role
-      properties:
-        username:
-          type: string
-          minLength: 3
-          maxLength: 50
-        password:
-          type: string
-          minLength: 6
-        email:
-          type: string
-          format: email
-        role:
-          type: string
-          enum: [USER, ADMIN]
-    
-    UpdateUserRequest:
-      type: object
-      required:
-        - username
-        - email
-        - role
-      properties:
-        username:
-          type: string
-          minLength: 3
-          maxLength: 50
-        password:
-          type: string
-          minLength: 6
-        email:
-          type: string
-          format: email
-        role:
-          type: string
-          enum: [USER, ADMIN]
-    
-    BankCardDto:
+
+    Card:
       type: object
       properties:
         id:
           type: integer
           format: int64
-        maskedNumber:
+        cardNumber:
           type: string
-        cardholderName:
+          description: "Full card number (16 digits)"
+          example: "1234567890123456"
+        maskedCardNumber:
           type: string
+          description: "Masked card number for display"
+          example: "** ** 1234"
+        cardHolderName:
+          type: string
+          example: "John Doe"
         expiryDate:
           type: string
           format: date
-        status:
-          type: string
-          enum: [ACTIVE, BLOCKED, EXPIRED]
+          example: "2027-12"
         balance:
           type: number
           format: decimal
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-        ownerId:
-          type: integer
-          format: int64
-        ownerUsername:
-          type: string
-    
-    CreateCardRequest:
-      type: object
-      required:
-        - cardholderName
-        - ownerId
-        - initialBalance
-      properties:
-        cardholderName:
-          type: string
-          maxLength: 100
-        ownerId:
-          type: integer
-          format: int64
-        initialBalance:
-          type: number
-          format: decimal
-          minimum: 0
-    
-    UpdateCardStatusRequest:
-      type: object
-      required:
-        - status
-      properties:
+          example: 1000.00
         status:
           type: string
           enum: [ACTIVE, BLOCKED, EXPIRED]
-    
-    TransactionDto:
+        cardType:
+          type: string
+          enum: [DEBIT, CREDIT]
+        ownerUsername:
+          type: string
+          example: "john_doe"
+
+    Transaction:
       type: object
       properties:
         id:
           type: integer
           format: int64
-        fromCardMasked:
-          type: string
-        toCardMasked:
-          type: string
+        fromCard:
+          $ref: '#/components/schemas/Card'
+        toCard:
+          $ref: '#/components/schemas/Card'
         amount:
           type: number
           format: decimal
+          example: 100.00
+        type:
+          type: string
+          enum: [TRANSFER, DEPOSIT, WITHDRAWAL]
         status:
           type: string
           enum: [PENDING, COMPLETED, FAILED, CANCELLED]
         description:
           type: string
+          example: "Transfer to savings"
         createdAt:
           type: string
           format: date-time
-        fromCardId:
-          type: integer
-          format: int64
-        toCardId:
-          type: integer
-          format: int64
-    
-    CreateTransactionRequest:
+
+    AuthRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          example: "john_doe"
+        password:
+          type: string
+          format: password
+          example: "password123"
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: "JWT token for authentication"
+        username:
+          type: string
+          example: "john_doe"
+        fullName:
+          type: string
+          example: "John Doe"
+
+    UserRegistrationDto:
+      type: object
+      required:
+        - username
+        - password
+        - fullName
+        - email
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+          example: "john_doe"
+        password:
+          type: string
+          format: password
+          minLength: 6
+          example: "password123"
+        fullName:
+          type: string
+          maxLength: 100
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+
+    CardDto:
+      type: object
+      required:
+        - cardHolderName
+        - cardType
+      properties:
+        cardNumber:
+          type: string
+          pattern: '^\d{16}$'
+          example: "1234567890123456"
+        cardHolderName:
+          type: string
+          example: "John Doe"
+        expiryDate:
+          type: string
+          format: date
+          example: "2027-12"
+        cardType:
+          type: string
+          enum: [DEBIT, CREDIT]
+
+    TransferRequest:
       type: object
       required:
         - fromCardId
@@ -174,46 +212,295 @@ components:
         fromCardId:
           type: integer
           format: int64
+          example: 1
         toCardId:
           type: integer
           format: int64
+          example: 2
         amount:
           type: number
           format: decimal
           minimum: 0.01
+          example: 100.00
         description:
           type: string
+          example: "Transfer to savings"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Invalid request"
+        message:
+          type: string
+          example: "The request could not be processed"
+        timestamp:
+          type: string
+          format: date-time
 
 paths:
-  /api/users:
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Authenticate user and return JWT token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRequest'
+      responses:
+        '200':
+          description: Successful authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: User registration
+      description: Register a new user account
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistrationDto'
+      responses:
+        '200':
+          description: Successful registration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid input or user already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /cards:
     get:
-      summary: Получение списка всех пользователей
-      tags: [Users]
+      tags:
+        - Cards
+      summary: Get user cards
+      description: Get all cards for the authenticated user
+      responses:
+        '200':
+          description: List of user cards
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Card'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Cards
+      summary: Create a new card
+      description: Create a new card for the authenticated user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CardDto'
+      responses:
+        '201':
+          description: Card created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /cards/{cardId}:
+    get:
+      tags:
+        - Cards
+      summary: Get card by ID
+      description: Get a specific card by its ID
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Card details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        '404':
+          description: Card not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Cards
+      summary: Delete card
+      description: Delete a card
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Card deleted successfully
+        '404':
+          description: Card not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /cards/{cardId}/status:
+    put:
+      tags:
+        - Cards
+      summary: Update card status
+      description: Update the status of a card (ACTIVE, BLOCKED, EXPIRED)
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: status
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [ACTIVE, BLOCKED, EXPIRED]
+      responses:
+        '200':
+          description: Card status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        '404':
+          description: Card not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /transactions/transfer:
+    post:
+      tags:
+        - Transactions
+      summary: Transfer between own cards
+      description: Transfer money between user's own cards
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferRequest'
+      responses:
+        '201':
+          description: Transfer completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '400':
+          description: Invalid transfer request or insufficient balance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /transactions:
+    get:
+      tags:
+        - Transactions
+      summary: Get user transactions
+      description: Get all transactions for the authenticated user with pagination
       parameters:
         - name: page
           in: query
           schema:
             type: integer
             default: 0
+          description: Page number (0-based)
         - name: size
           in: query
           schema:
             type: integer
             default: 20
-        - name: sortBy
-          in: query
-          schema:
-            type: string
-            default: id
-        - name: sortDir
-          in: query
-          schema:
-            type: string
-            default: asc
-            enum: [asc, desc]
+          description: Page size
       responses:
         '200':
-          description: Список пользователей
+          description: Paginated list of transactions
           content:
             application/json:
               schema:
@@ -222,619 +509,86 @@ paths:
                   content:
                     type: array
                     items:
-                      $ref: '#/components/schemas/UserDto'
+                      $ref: '#/components/schemas/Transaction'
                   totalElements:
                     type: integer
+                    format: int64
                   totalPages:
                     type: integer
                   size:
                     type: integer
                   number:
                     type: integer
-    
-    post:
-      summary: Создание нового пользователя
-      tags: [Users]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateUserRequest'
-      responses:
-        '200':
-          description: Пользователь успешно создан
+        '401':
+          description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserDto'
-        '400':
-          description: Неверные данные запроса
-  
-  /api/users/{id}:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /transactions/card/{cardId}:
     get:
-      summary: Получение пользователя по ID
-      tags: [Users]
+      tags:
+        - Transactions
+      summary: Get card transactions
+      description: Get all transactions for a specific card with pagination
       parameters:
-        - name: id
+        - name: cardId
           in: path
           required: true
           schema:
             type: integer
             format: int64
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Page number (0-based)
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+          description: Page size
       responses:
         '200':
-          description: Пользователь найден
+          description: Paginated list of transactions for the card
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserDto'
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Transaction'
+                  totalElements:
+                    type: integer
+                    format: int64
+                  totalPages:
+                    type: integer
+                  size:
+                    type: integer
+                  number:
+                    type: integer
         '404':
-          description: Пользователь не найден
-    
-    put:
-      summary: Обновление пользователя
-      tags: [Users]
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateUserRequest'
-      responses:
-        '200':
-          description: Пользователь успешно обновлен
+          description: Card not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserDto'
-        '400':
-          description: Неверные данные запроса
-        '404':
-          description: Пользователь не найден
-    
-    delete:
-      summary: Удаление пользователя
-      tags: [Users]
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '204':
-          description: Пользователь успешно удален
-        '404':
-          description: Пользователь не найден
-  
-  /api/users/role/{role}:
-    get:
-      summary: Получение пользователей по роли
-      tags: [Users]
-      parameters:
-        - name: role
-          in: path
-          required: true
-          schema:
-            type: string
-            enum: [USER, ADMIN]
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 0
-        - name: size
-          in: query
-          schema:
-            type: integer
-            default: 20
-      responses:
-        '200':
-          description: Список пользователей по роли
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  content:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/UserDto'
-  
-  /api/users/search:
-    get:
-      summary: Поиск пользователей
-      tags: [Users]
-      parameters:
-        - name: q
-          in: query
-          required: true
-          schema:
-            type: string
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 0
-        - name: size
-          in: query
-          schema:
-            type: integer
-            default: 20
-      responses:
-        '200':
-          description: Результаты поиска
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  content:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/UserDto'
-  
-  /api/cards:
-    get:
-      summary: Получение списка всех карт
-      tags: [Bank Cards]
-      parameters:
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 0
-        - name: size
-          in: query
-          schema:
-            type: integer
-            default: 20
-        - name: sortBy
-          in: query
-          schema:
-            type: string
-            default: id
-        - name: sortDir
-          in: query
-          schema:
-            type: string
-            default: desc
-            enum: [asc, desc]
-      responses:
-        '200':
-          description: Список карт
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  content:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/BankCardDto'
-    
-    post:
-      summary: Создание новой карты
-      tags: [Bank Cards]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateCardRequest'
-      responses:
-        '200':
-          description: Карта успешно создана
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BankCardDto'
-        '400':
-          description: Неверные данные запроса
-  
-  /api/cards/{id}:
-    get:
-      summary: Получение карты по ID
-      tags: [Bank Cards]
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '200':
-          description: Карта найдена
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BankCardDto'
-        '404':
-          description: Карта не найдена
-    
-    put:
-      summary: Обновление статуса карты
-      tags: [Bank Cards]
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateCardStatusRequest'
-      responses:
-        '200':
-          description: Статус карты обновлен
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BankCardDto'
-        '404':
-          description: Карта не найдена
-    
-    delete:
-      summary: Удаление карты
-      tags: [Bank Cards]
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '204':
-          description: Карта успешно удалена
-        '404':
-          description: Карта не найдена
-  
-  /api/cards/user/{userId}:
-    get:
-      summary: Получение карт пользователя
-      tags: [Bank Cards]
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 0
-        - name: size
-          in: query
-          schema:
-            type: integer
-            default: 20
-        - name: status
-          in: query
-          schema:
-            type: string
-            enum: [ACTIVE, BLOCKED, EXPIRED]
-        - name: searchTerm
-          in: query
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Список карт пользователя
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  content:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/BankCardDto'
-  
-  /api/cards/status/{status}:
-    get:
-      summary: Получение карт по статусу
-      tags: [Bank Cards]
-      parameters:
-        - name: status
-          in: path
-          required: true
-          schema:
-            type: string
-            enum: [ACTIVE, BLOCKED, EXPIRED]
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 0
-        - name: size
-          in: query
-          schema:
-            type: integer
-            default: 20
-      responses:
-        '200':
-          description: Список карт по статусу
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  content:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/BankCardDto'
-  
-  /api/cards/expired:
-    get:
-      summary: Получение просроченных карт
-      tags: [Bank Cards]
-      responses:
-        '200':
-          description: Список просроченных карт
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/BankCardDto'
-  
-  /api/cards/low-balance:
-    get:
-      summary: Получение карт с низким балансом
-      tags: [Bank Cards]
-      parameters:
-        - name: minBalance
-          in: query
-          schema:
-            type: number
-            default: 100
-      responses:
-        '200':
-          description: Список карт с низким балансом
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/BankCardDto'
-  
-  /api/transactions:
-    get:
-      summary: Получение списка всех транзакций
-      tags: [Transactions]
-      parameters:
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 0
-        - name: size
-          in: query
-          schema:
-            type: integer
-            default: 20
-        - name: sortBy
-          in: query
-          schema:
-            type: string
-            default: createdAt
-        - name: sortDir
-          in: query
-          schema:
-            type: string
-            default: desc
-            enum: [asc, desc]
-      responses:
-        '200':
-          description: Список транзакций
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  content:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/TransactionDto'
-  
-  /api/transactions/transfer:
-    post:
-      summary: Перевод между картами
-      tags: [Transactions]
-      parameters:
-        - name: userId
-          in: query
-          required: true
-          schema:
-            type: integer
-            format: int64
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateTransactionRequest'
-      responses:
-        '200':
-          description: Перевод выполнен успешно
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TransactionDto'
-        '400':
-          description: Неверные данные запроса
-  
-  /api/transactions/{id}:
-    get:
-      summary: Получение транзакции по ID
-      tags: [Transactions]
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '200':
-          description: Транзакция найдена
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TransactionDto'
-        '404':
-          description: Транзакция не найдена
-  
-  /api/transactions/user/{userId}:
-    get:
-      summary: История транзакций пользователя
-      tags: [Transactions]
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 0
-        - name: size
-          in: query
-          schema:
-            type: integer
-            default: 20
-      responses:
-        '200':
-          description: История транзакций
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  content:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/TransactionDto'
-  
-  /api/transactions/status/{status}:
-    get:
-      summary: Получение транзакций по статусу
-      tags: [Transactions]
-      parameters:
-        - name: status
-          in: path
-          required: true
-          schema:
-            type: string
-            enum: [PENDING, COMPLETED, FAILED, CANCELLED]
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 0
-        - name: size
-          in: query
-          schema:
-            type: integer
-            default: 20
-      responses:
-        '200':
-          description: Список транзакций по статусу
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  content:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/TransactionDto'
-  
-  /api/transactions/date-range:
-    get:
-      summary: Получение транзакций по диапазону дат
-      tags: [Transactions]
-      parameters:
-        - name: startDate
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date-time
-        - name: endDate
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date-time
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 0
-        - name: size
-          in: query
-          schema:
-            type: integer
-            default: 20
-      responses:
-        '200':
-          description: Список транзакций по диапазону дат
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  content:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/TransactionDto'
-  
-  /api/transactions/user/{userId}/all:
-    get:
-      summary: Получение всех транзакций пользователя
-      tags: [Transactions]
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '200':
-          description: Все транзакции пользователя
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/TransactionDto'
+                $ref: '#/components/schemas/ErrorResponse'
 
 tags:
-  - name: Users
-    description: Управление пользователями
-  - name: Bank Cards
-    description: Управление банковскими картами
+  - name: Authentication
+    description: User authentication and registration
+  - name: Cards
+    description: Card management operations
   - name: Transactions
-    description: Операции с транзакциями
+    description: Transaction and transfer operations

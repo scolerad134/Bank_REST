@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="004-insert-sample-data" author="system">
+        <!-- Insert sample user (password: password123) -->
+        <insert tableName="users">
+            <column name="username" value="testuser"/>
+            <column name="password" value="$2a$10$4A7oKE7Jd4kK8vO3vC5BQOqON8w4dO1pN4/A4HyQ7fKL1sJ0Kw.Z2"/>
+            <column name="full_name" value="Test User"/>
+            <column name="email" value="test@example.com"/>
+        </insert>
+
+        <!-- Insert sample cards -->
+        <insert tableName="cards">
+            <column name="card_number" value="1234567890123456"/>
+            <column name="card_holder_name" value="Test User"/>
+            <column name="expiry_date" value="2027-12-31"/>
+            <column name="cvv" value="123"/>
+            <column name="balance" value="1000.00"/>
+            <column name="status" value="ACTIVE"/>
+            <column name="card_type" value="DEBIT"/>
+            <column name="owner_id" value="1"/>
+        </insert>
+
+        <insert tableName="cards">
+            <column name="card_number" value="9876543210987654"/>
+            <column name="card_holder_name" value="Test User"/>
+            <column name="expiry_date" value="2028-06-30"/>
+            <column name="cvv" value="456"/>
+            <column name="balance" value="500.00"/>
+            <column name="status" value="ACTIVE"/>
+            <column name="card_type" value="CREDIT"/>
+            <column name="owner_id" value="1"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

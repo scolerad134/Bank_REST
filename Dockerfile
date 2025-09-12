@@ -1,28 +1,30 @@
-# Многоэтапная сборка
-FROM openjdk:17-jdk-slim AS build
-
-# Устанавливаем Maven
-RUN apt-get update && apt-get install -y maven
-
-WORKDIR /app
-
-# Копируем pom.xml и src
-COPY pom.xml .
-COPY src ./src
-
-# Собираем приложение
-RUN mvn clean package -DskipTests
-
-# Runtime образ
 FROM openjdk:17-jdk-slim
 
+LABEL maintainer="Bank Development Team <dev@bank.com>"
+LABEL description="Bank Cards Management System"
+
+# Install curl for health checks
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+# Create app directory
 WORKDIR /app
 
-# Копируем собранный JAR
-COPY --from=build /app/target/Bank_REST-*.jar app.jar
+# Copy Maven wrapper and pom.xml
+COPY .mvn/ .mvn/
+COPY mvnw pom.xml ./
 
-# Открываем порт
+# Download dependencies
+RUN ./mvnw dependency:go-offline
+
+# Copy source code
+COPY src ./src
+
+# Build application
+RUN ./mvnw clean package -DskipTests
+
+# Create logs directory
+RUN mkdir -p /app/logs
+
+# Run application
 EXPOSE 8080
-
-# Запускаем приложение
-CMD ["java", "-jar", "app.jar"]
+CMD ["java", "-jar", "target/cards-1.0.0.jar"]
