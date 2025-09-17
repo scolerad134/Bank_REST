@@ -37,7 +37,7 @@
 
 1. Клонируйте репозиторий:
 ```bash
-git clone <repository-url>
+git clone https://github.com/scolerad134/Bank_REST.git
 cd cards
 ```
 
