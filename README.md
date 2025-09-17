@@ -38,7 +38,7 @@
 1. Клонируйте репозиторий:
 ```bash
 git clone https://github.com/scolerad134/Bank_REST.git
-cd cards
+cd Bank_Rest
 ```
 
 2. Запустите приложение:
